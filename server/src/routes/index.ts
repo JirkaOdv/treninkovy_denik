@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes';
+import { authRoutes } from './auth.routes';
 import trainingRoutes from './training.routes';
 import aiRoutes from './ai.routes';
 
