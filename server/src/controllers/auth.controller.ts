@@ -46,9 +46,18 @@ export class AuthController {
   // Public Login
   async login(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password } = req.body;
+      const { email, password } = req.body; // email field from frontend holds login value (email or username)
 
-      const user = await prisma.user.findUnique({ where: { email } });
+      // Find by Email OR Username
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: email },
+            { username: email }
+          ]
+        }
+      });
+
       if (!user) {
         res.status(400).json({ message: 'Invalid credentials' });
         return;
@@ -62,7 +71,18 @@ export class AuthController {
 
       const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
 
-      res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          name: user.firstName ? `${user.firstName} ${user.lastName}` : (user.name || user.username),
+          role: user.role
+        }
+      });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -77,6 +97,9 @@ export class AuthController {
         select: {
           id: true,
           name: true,
+          username: true,
+          firstName: true,
+          lastName: true,
           email: true,
           role: true,
           createdAt: true
@@ -112,12 +135,21 @@ export class AuthController {
   async updateUser(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, email, role, password } = req.body;
+      const { name, email, role, password, username, firstName, lastName } = req.body;
 
       const updateData: any = {};
-      if (name) updateData.name = name;
-      if (email) updateData.email = email;
-      if (role) updateData.role = role;
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (role !== undefined) updateData.role = role;
+
+      // Handle username: if empty string, set to null to avoid unique constraint on empty string
+      if (username !== undefined) {
+        updateData.username = username === '' ? null : username;
+      }
+
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+
       if (password) {
         updateData.password = await bcrypt.hash(password, 10);
       }
@@ -125,7 +157,7 @@ export class AuthController {
       const user = await prisma.user.update({
         where: { id },
         data: updateData,
-        select: { id: true, name: true, email: true, role: true, createdAt: true }
+        select: { id: true, name: true, username: true, firstName: true, lastName: true, email: true, role: true, createdAt: true }
       });
       res.json(user);
     } catch (error) {
@@ -136,16 +168,25 @@ export class AuthController {
 
   async createUser(req: Request, res: Response) {
     try {
-      const { email, password, name, role } = req.body;
+      const { email, password, name, role, username, firstName, lastName } = req.body;
 
       if (!email || !password) {
         res.status(400).json({ message: 'Email and password are required' });
         return;
       }
 
-      const existingUser = await prisma.user.findUnique({ where: { email } });
+      // Check unique constraints manually if needed (prisma handles it but nice to return specific error)
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email },
+            { username: username || undefined } // Check username only if provided
+          ]
+        }
+      });
+
       if (existingUser) {
-        res.status(400).json({ message: 'User already exists' });
+        res.status(400).json({ message: 'User with this email or username already exists' });
         return;
       }
 
@@ -155,9 +196,12 @@ export class AuthController {
           email,
           password: hashedPassword,
           name,
+          firstName,
+          lastName,
+          username,
           role: role || 'user',
         },
-        select: { id: true, name: true, email: true, role: true, createdAt: true }
+        select: { id: true, name: true, username: true, firstName: true, lastName: true, email: true, role: true, createdAt: true }
       });
 
       res.status(201).json(user);

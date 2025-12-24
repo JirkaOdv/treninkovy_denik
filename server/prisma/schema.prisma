@@ -10,8 +10,11 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
+  username  String?  @unique
   password  String
-  name      String?
+  firstName String?
+  lastName  String?
+  name      String?  // Deprecated, keeping for safety
   role      String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -23,7 +26,7 @@ model User {
 model Training {
   id              String   @id @default(uuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date            DateTime
   type            String
   durationMinutes Int
@@ -38,6 +41,9 @@ model Training {
   // Aggregated stats
   totalDistance   Int?
   totalLoad       Int?
+  rpe             Int?     // Rate of Perceived Exertion (1-10)
+  tags            String[] @default([]) // Customizable tags (e.g. "Indoor", "Rehab")
+  customData      Json?    // Flexible data for other sports
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -46,7 +52,7 @@ model Training {
 model SeasonGoal {
   id        String   @id @default(uuid())
   userId    String
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String
   target    Int
   current   Int      @default(0)

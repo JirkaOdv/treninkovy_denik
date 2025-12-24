@@ -59,7 +59,7 @@ class dbService {
 
     getUserProfile(): UserProfile | null {
         try {
-            const data = localStorage.getItem('user');
+            const data = localStorage.getItem('training_profile');
             if (data) return JSON.parse(data);
             return null;
         } catch (e) {
@@ -68,9 +68,7 @@ class dbService {
     }
 
     saveUserProfile(profile: UserProfile): void {
-        localStorage.setItem('user', JSON.stringify(profile));
-        // Note: This won't update AuthContext state automatically. 
-        // Components should use updateProfile from context in future.
+        localStorage.setItem('training_profile', JSON.stringify(profile));
     }
 
     getAllUsers(): UserProfile[] {

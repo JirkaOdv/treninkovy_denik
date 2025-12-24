@@ -5,10 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import styles from '../styles/forms.module.css';
 
 const Login: React.FC = () => {
-    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
     const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -17,10 +15,7 @@ const Login: React.FC = () => {
         e.preventDefault();
         setError('');
         try {
-            const endpoint = isLogin ? '/auth/login' : '/auth/register';
-            const payload = isLogin ? { email, password } : { email, password, name };
-
-            const data = await api.post(endpoint, payload);
+            const data = await api.post('/auth/login', { email, password });
 
             login(data.token, data.user);
             navigate('/dashboard');
@@ -31,25 +26,13 @@ const Login: React.FC = () => {
 
     return (
         <div className="login-container" style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', backgroundColor: 'var(--surface)', borderRadius: '12px', boxShadow: 'var(--shadow-lg)' }}>
-            <h2 style={{ textAlign: 'center', color: 'var(--primary)' }}>{isLogin ? 'Přihlášení' : 'Registrace'}</h2>
+            <h2 style={{ textAlign: 'center', color: 'var(--primary)' }}>Přihlášení</h2>
             {error && <div style={{ color: 'red', marginBottom: '10px', textAlign: 'center' }}>{error}</div>}
             <form onSubmit={handleSubmit} className={styles.form}>
-                {!isLogin && (
-                    <div className={styles.formGroup}>
-                        <label>Jméno</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className={styles.input}
-                            required={!isLogin}
-                        />
-                    </div>
-                )}
                 <div className={styles.formGroup}>
-                    <label>Email</label>
+                    <label>Email nebo Uživatelské jméno</label>
                     <input
-                        type="email"
+                        type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className={styles.input}
@@ -67,7 +50,7 @@ const Login: React.FC = () => {
                     />
                 </div>
                 <button type="submit" className={styles.buttonPrimary} style={{ width: '100%', marginTop: '10px' }}>
-                    {isLogin ? 'Přihlásit se' : 'Registrovat se'}
+                    Přihlásit se
                 </button>
             </form>
             <p style={{ textAlign: 'center', marginTop: '15px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>

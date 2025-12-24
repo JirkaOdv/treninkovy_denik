@@ -1,4 +1,4 @@
-export type TrainingType = 'strength' | 'cardio' | 'mobility' | 'other';
+export type TrainingType = 'strength' | 'cardio' | 'mobility' | 'other' | string;
 export type Feeling = 'great' | 'good' | 'average' | 'bad' | 'terrible';
 
 // --- V2: New Data Structures ---
@@ -37,6 +37,11 @@ export interface TrainingSession {
     // Totals/Aggregates
     totalDistance?: number; // km (runs/cardio) or m (sprints sum)
     totalLoad?: number; // arbitrary load unit
+
+    // V3 Flexible Fields
+    rpe?: number; // 1-10 intensity
+    tags?: string[]; // ["indoor", "rehab", ...]
+    customData?: any; // For other sports/metrics
 }
 
 export interface SeasonGoal {
@@ -50,6 +55,10 @@ export interface SeasonGoal {
 export interface UserProfile {
     id: string; // uuid
     name: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    email?: string;
     role: 'admin' | 'user';
     weight?: number; // kg
     height?: number; // cm
