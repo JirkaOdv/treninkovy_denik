@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  trainings Training[]
+  goals     SeasonGoal[]
+}
+
+model Training {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  date            DateTime
+  type            String
+  durationMinutes Int
+  feeling         String
+  notes           String?
+  
+  // JSON fields for complex data structures
+  sprints         Json?
+  gym             Json?
+  jumps           Json?
+  
+  // Aggregated stats
+  totalDistance   Int?
+  totalLoad       Int?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SeasonGoal {
+  id        String   @id @default(uuid())
+  userId    String
+  user            User     @relation(fields: [userId], references: [id])
+  type      String
+  target    Int
+  current   Int      @default(0)
+  unit      String
+  deadline  DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

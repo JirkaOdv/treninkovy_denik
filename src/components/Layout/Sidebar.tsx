@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, PlusCircle, Settings, Dumbbell } from 'lucide-react';
+import { LayoutDashboard, Calendar, PlusCircle, Settings, Dumbbell, LogOut } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -9,6 +10,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+    const { logout } = useAuth();
+
     return (
         <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
             <div className={styles.logo}>
@@ -54,6 +57,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <Settings size={20} />
                     <span>Nastavení</span>
                 </NavLink>
+
+                <button
+                    onClick={() => { logout(); onClose?.(); }}
+                    className={styles.navItem}
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        width: '100%',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        fontSize: 'inherit',
+                        textAlign: 'left'
+                    }}
+                >
+                    <LogOut size={20} />
+                    <span>Odhlásit se</span>
+                </button>
             </div>
         </aside>
     );
