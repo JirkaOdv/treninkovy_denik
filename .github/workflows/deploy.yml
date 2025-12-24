@@ -32,6 +32,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-server
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=ref,event=branch
+            type=ref,event=tag
 
       - name: Build and push Server Docker image
         uses: docker/build-push-action@v5
@@ -47,6 +51,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=ref,event=branch
+            type=ref,event=tag
 
       - name: Build and push Web Docker image
         uses: docker/build-push-action@v5
