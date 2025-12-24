@@ -206,10 +206,12 @@ const Settings: React.FC = () => {
 const UserManagementList: React.FC<{ currentUserId: string }> = ({ currentUserId }) => {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [isCreateMode, setIsCreateMode] = useState(false);
+    const [formData, setFormData] = useState({ name: '', email: '', role: 'user', password: '' });
 
     const loadUsers = async () => {
         try {
-            // Import dynamically to avoid circular dependencies if any, or just use api service directly
             const { api } = await import('../services/api');
             const data = await api.get('/auth/users');
             setUsers(data as any[]);
@@ -226,63 +228,55 @@ const UserManagementList: React.FC<{ currentUserId: string }> = ({ currentUserId
 
     const handleDelete = async (userId: string, userName: string) => {
         if (!window.confirm(`Opravdu smazat uživatele ${userName}? Tato akce je nevratná.`)) return;
-
         try {
             const { api } = await import('../services/api');
             await api.delete(`/auth/users/${userId}`);
-            // Refresh list
             loadUsers();
         } catch (error) {
             alert('Chyba při mazání uživatele');
         }
     };
 
-    const handleEdit = async (user: any) => {
-        const newName = prompt('Zadejte nové jméno:', user.name || '');
-        if (newName === null) return; // Cancelled
-
-        const newEmail = prompt('Zadejte nový email:', user.email);
-        if (newEmail === null) return;
-
-        const newRole = prompt('Role (user/admin):', user.role);
-        if (newRole === null) return;
-
-        const newPassword = prompt('Nové heslo (nechte prázdné pro zachování):');
-        if (newPassword === null) return;
-
-        try {
-            const { api } = await import('../services/api');
-            const updateData: any = { name: newName, email: newEmail, role: newRole };
-            if (newPassword) updateData.password = newPassword;
-
-            await api.put(`/auth/users/${user.id}`, updateData);
-            alert('Uživatel aktualizován');
-            loadUsers();
-        } catch (error) {
-            alert('Chyba při aktualizaci uživatele');
-            console.error(error);
-        }
+    const openEdit = (user: any) => {
+        setEditingUser(user);
+        setFormData({ name: user.name || '', email: user.email, role: user.role, password: '' });
+        setIsCreateMode(false);
     };
 
-    const handleCreate = async () => {
-        const name = prompt('Jméno nového uživatele:');
-        if (!name) return;
+    const openCreate = () => {
+        setEditingUser(null);
+        setFormData({ name: '', email: '', role: 'user', password: '' });
+        setIsCreateMode(true);
+    };
 
-        const email = prompt('Email:');
-        if (!email) return;
+    const closeEditor = () => {
+        setEditingUser(null);
+        setIsCreateMode(false);
+    };
 
-        const password = prompt('Heslo:');
-        if (!password) return;
-
-        const role = prompt('Role (user/admin):', 'user');
-
+    const handleSaveUser = async (e: React.FormEvent) => {
+        e.preventDefault();
         try {
             const { api } = await import('../services/api');
-            await api.post('/auth/users', { name, email, password, role });
-            alert('Uživatel vytvořen');
+
+            if (isCreateMode) {
+                await api.post('/auth/users', formData);
+                alert('Uživatel vytvořen');
+            } else {
+                const updateData: any = {
+                    name: formData.name,
+                    email: formData.email,
+                    role: formData.role
+                };
+                if (formData.password) updateData.password = formData.password;
+
+                await api.put(`/auth/users/${editingUser.id}`, updateData);
+                alert('Uživatel aktualizován');
+            }
+            closeEditor();
             loadUsers();
         } catch (error) {
-            alert('Chyba při vytváření uživatele (možná email již existuje?)');
+            alert('Chyba při ukládání uživatele');
         }
     };
 
@@ -290,49 +284,142 @@ const UserManagementList: React.FC<{ currentUserId: string }> = ({ currentUserId
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+
+            <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
-                    onClick={handleCreate}
+                    onClick={openCreate}
                     className={styles.buttonSecondary}
-                    style={{ width: '100%', justifyContent: 'center', background: 'var(--color-primary)', color: 'white', border: 'none' }}
+                    style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                    + Vytvořit nového uživatele
+                    <User size={16} />
+                    Nový uživatel
                 </button>
             </div>
-            <label className={styles.label}>Existující uživatelé ({users.length})</label>
-            {users.map(user => (
-                <div key={user.id} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ fontWeight: 600 }}>{user.name || user.email}</div>
-                        <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{user.email}</div>
-                        {user.id === currentUserId && <span style={{ fontSize: '0.75rem', background: 'var(--color-primary)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>VY</span>}
-                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>({user.role})</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                            onClick={() => handleEdit(user)}
-                            className={styles.buttonSecondary}
-                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                            title="Upravit uživatele"
-                        >
-                            <User size={14} />
-                        </button>
-                        {user.id !== currentUserId && (
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label className={styles.label} style={{ marginBottom: '0.5rem', display: 'block' }}>Seznam uživatelů ({users.length})</label>
+                {users.map(user => (
+                    <div key={user.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '1rem',
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)',
+                        transition: 'background 0.2s',
+                        cursor: 'default'
+                    }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                                <User size={20} />
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{user.name || 'Jméno nezadáno'}</div>
+                                <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{user.email}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {user.id === currentUserId && <span style={{ fontSize: '0.7rem', background: 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>VY</span>}
+                                <span style={{ fontSize: '0.7rem', background: user.role === 'admin' ? 'var(--color-accent)' : 'var(--color-surface-hover)', color: user.role === 'admin' ? 'white' : 'var(--color-text-muted)', padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase', fontWeight: 600 }}>{user.role}</span>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
-                                onClick={() => handleDelete(user.id, user.name || user.email)}
+                                onClick={() => openEdit(user)}
                                 className={styles.buttonSecondary}
-                                style={{ padding: '4px 8px', fontSize: '0.75rem', color: 'var(--color-danger)', borderColor: 'rgba(239,68,68,0.3)' }}
-                                title="Smazat uživatele"
+                                style={{ padding: '8px', fontSize: '0.75rem' }}
+                                title="Upravit uživatele"
                             >
-                                <Trash2 size={14} />
+                                <User size={16} />
                             </button>
-                        )}
+                            {user.id !== currentUserId && (
+                                <button
+                                    onClick={() => handleDelete(user.id, user.name || user.email)}
+                                    className={styles.buttonSecondary}
+                                    style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--color-danger)', borderColor: 'rgba(239,68,68,0.3)' }}
+                                    title="Smazat uživatele"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {(isCreateMode || editingUser) && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000
+                }} onClick={closeEditor}>
+                    <div style={{
+                        background: 'var(--color-surface)',
+                        padding: '2rem',
+                        borderRadius: 'var(--radius-lg)',
+                        width: '100%', maxWidth: '450px',
+                        border: '1px solid var(--border-color)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {isCreateMode ? <><User color="var(--color-primary)" /> Nový uživatel</> : <><User color="var(--color-accent)" /> Upravit uživatele</>}
+                        </h3>
+
+                        <form onSubmit={handleSaveUser} className={styles.formGrid} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div className={styles.formGroup}>
+                                <label>Jméno</label>
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Jan Novák"
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Email</label>
+                                <input
+                                    type="email"
+                                    className={styles.input}
+                                    value={formData.email}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Role</label>
+                                <select
+                                    className={styles.input}
+                                    value={formData.role}
+                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                >
+                                    <option value="user">Uživatel (User)</option>
+                                    <option value="admin">Administrátor (Admin)</option>
+                                </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Heslo {isCreateMode ? '(Povinné)' : '(Nechte prázdné pro zachování)'}</label>
+                                <input
+                                    type="password"
+                                    className={styles.input}
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder={isCreateMode ? 'Heslo' : '••••••'}
+                                    required={isCreateMode}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button type="button" onClick={closeEditor} className={styles.buttonSecondary} style={{ flex: 1 }}>Zrušit</button>
+                                <button type="submit" className={styles.buttonPrimary} style={{ flex: 1 }}>Uložit</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            ))}
+            )}
         </div>
     );
 };
