@@ -1,0 +1,38 @@
+services:
+  # Database (zůstává stejné)
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adminpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-fittrack}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Backend API (tahá IMAGE z GitHubu)
+  server:
+    image: ghcr.io/jirkaodv/treninkovy_denik-server:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://admin:adminpassword@db:5432/fittrack
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - db
+
+  # Frontend Web App (tahá IMAGE z GitHubu)
+  web:
+    image: ghcr.io/jirkaodv/treninkovy_denik-web:latest
+    restart: always
+    ports:
+      - "80:80" # Nginx běží na portu 80
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:
