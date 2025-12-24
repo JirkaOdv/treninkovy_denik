@@ -1,5 +1,5 @@
-// Use current hostname to allow mobile access via LAN IP
-const API_URL = `http://${window.location.hostname}:3000/api`;
+// Use relative path for production (nginx proxy) or fallback for dev
+const API_URL = import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3000/api`;
 
 export const getAuthHeader = (): Record<string, string> => {
     const token = localStorage.getItem('token');
