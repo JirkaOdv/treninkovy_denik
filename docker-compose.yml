@@ -12,9 +12,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Backend API (tahá IMAGE z GitHubu)
+  # Backend API (runs locally from built image)
   server:
-    image: ghcr.io/jirkaodv/treninkovy_denik-server:latest
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     restart: always
     ports:
       - "3000:3000"
@@ -25,12 +27,14 @@ services:
     depends_on:
       - db
 
-  # Frontend Web App (tahá IMAGE z GitHubu)
+  # Frontend Web App (runs locally from built image)
   web:
-    image: ghcr.io/jirkaodv/treninkovy_denik-web:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
-      - "8080:80" # Nginx běží na portu 80, ven mapujeme na 8080
+      - "8080:80" # Nginx on 80, mapped to 8080 host
     depends_on:
       - server
 
