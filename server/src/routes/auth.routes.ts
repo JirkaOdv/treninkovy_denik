@@ -1,9 +1,15 @@
 import { Router } from 'express';
-import { register, login } from '../controllers/auth.controller';
+import { AuthController } from '../controllers/auth.controller';
+import { authenticateToken } from '../middleware/auth';
 
+const controller = new AuthController();
 const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
+router.post('/register', controller.register.bind(controller));
+router.post('/login', controller.login.bind(controller));
 
-export default router;
+// Admin routes
+router.get('/users', authenticateToken, controller.getAllUsers.bind(controller));
+router.delete('/users/:id', authenticateToken, controller.deleteUser.bind(controller));
+
+export const authRoutes = router;

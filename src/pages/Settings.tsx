@@ -131,74 +131,7 @@ const Settings: React.FC = () => {
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Správa Uživatelů (Admin)</h2>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {/* List Users */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label className={styles.label}>Existující uživatelé</label>
-                            {trainingStorage.getAllUsers().map(user => (
-                                <div key={user.id} style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ fontWeight: 600 }}>{user.name || 'Jméno nezadáno'}</div>
-                                        {user.id === profile.id && <span style={{ fontSize: '0.75rem', background: 'var(--color-primary)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>VY</span>}
-                                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>({user.role})</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {user.id !== profile.id && (
-                                            <>
-                                                <button
-                                                    onClick={() => trainingStorage.switchUser(user.id)}
-                                                    className={styles.buttonSecondary}
-                                                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                                                >
-                                                    Přepnout
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if (window.confirm(`Opravdu smazat uživatele ${user.name}?`)) {
-                                                            trainingStorage.deleteUser(user.id);
-                                                            setSavedMessage('Uživatel smazán (refresh...)');
-                                                            setTimeout(() => window.location.reload(), 500);
-                                                        }
-                                                    }}
-                                                    className={styles.buttonSecondary}
-                                                    style={{ padding: '4px 8px', fontSize: '0.75rem', color: 'var(--color-danger)', borderColor: 'rgba(239,68,68,0.3)' }}
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Add New User */}
-                        <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                            <button
-                                onClick={() => {
-                                    const name = prompt('Jméno nového uživatele:');
-                                    if (name) {
-                                        const newUser: UserProfile = {
-                                            id: crypto.randomUUID(),
-                                            name,
-                                            role: 'user',
-                                            theme: 'system'
-                                        };
-                                        trainingStorage.addUser(newUser);
-                                        setSavedMessage('Uživatel vytvořen (refresh...)');
-                                        setTimeout(() => window.location.reload(), 500);
-                                    }
-                                }}
-                                className={styles.buttonSecondary}
-                                style={{ width: '100%', justifyContent: 'center' }}
-                            >
-                                + Přidat nového uživatele
-                            </button>
-                        </div>
-                    </div>
+                    <UserManagementList currentUserId={profile.id} />
                 </section>
             )}
 
@@ -266,6 +199,74 @@ const Settings: React.FC = () => {
             <div style={{ marginTop: '4rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
                 FitTrack v0.2.0 • Build 2025-12-22
             </div>
+        </div>
+    );
+};
+
+const UserManagementList: React.FC<{ currentUserId: string }> = ({ currentUserId }) => {
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadUsers = async () => {
+        try {
+            // Import dynamically to avoid circular dependencies if any, or just use api service directly
+            const { api } = await import('../services/api');
+            const data = await api.get('/auth/users');
+            setUsers(data as any[]);
+        } catch (error) {
+            console.error('Failed to load users', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const handleDelete = async (userId: string, userName: string) => {
+        if (!window.confirm(`Opravdu smazat uživatele ${userName}? Tato akce je nevratná.`)) return;
+
+        try {
+            const { api } = await import('../services/api');
+            await api.delete(`/auth/users/${userId}`);
+            // Refresh list
+            loadUsers();
+        } catch (error) {
+            alert('Chyba při mazání uživatele');
+        }
+    };
+
+    if (loading) return <div>Načítám uživatele...</div>;
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label className={styles.label}>Existující uživatelé ({users.length})</label>
+            {users.map(user => (
+                <div key={user.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ fontWeight: 600 }}>{user.name || user.email}</div>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{user.email}</div>
+                        {user.id === currentUserId && <span style={{ fontSize: '0.75rem', background: 'var(--color-primary)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>VY</span>}
+                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>({user.role})</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {user.id !== currentUserId && (
+                            <button
+                                onClick={() => handleDelete(user.id, user.name || user.email)}
+                                className={styles.buttonSecondary}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', color: 'var(--color-danger)', borderColor: 'rgba(239,68,68,0.3)' }}
+                                title="Smazat uživatele"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };
