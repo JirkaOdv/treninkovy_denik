@@ -237,10 +237,68 @@ const UserManagementList: React.FC<{ currentUserId: string }> = ({ currentUserId
         }
     };
 
+    const handleEdit = async (user: any) => {
+        const newName = prompt('Zadejte nové jméno:', user.name || '');
+        if (newName === null) return; // Cancelled
+
+        const newEmail = prompt('Zadejte nový email:', user.email);
+        if (newEmail === null) return;
+
+        const newRole = prompt('Role (user/admin):', user.role);
+        if (newRole === null) return;
+
+        const newPassword = prompt('Nové heslo (nechte prázdné pro zachování):');
+        if (newPassword === null) return;
+
+        try {
+            const { api } = await import('../services/api');
+            const updateData: any = { name: newName, email: newEmail, role: newRole };
+            if (newPassword) updateData.password = newPassword;
+
+            await api.put(`/auth/users/${user.id}`, updateData);
+            alert('Uživatel aktualizován');
+            loadUsers();
+        } catch (error) {
+            alert('Chyba při aktualizaci uživatele');
+            console.error(error);
+        }
+    };
+
+    const handleCreate = async () => {
+        const name = prompt('Jméno nového uživatele:');
+        if (!name) return;
+
+        const email = prompt('Email:');
+        if (!email) return;
+
+        const password = prompt('Heslo:');
+        if (!password) return;
+
+        const role = prompt('Role (user/admin):', 'user');
+
+        try {
+            const { api } = await import('../services/api');
+            await api.post('/auth/users', { name, email, password, role });
+            alert('Uživatel vytvořen');
+            loadUsers();
+        } catch (error) {
+            alert('Chyba při vytváření uživatele (možná email již existuje?)');
+        }
+    };
+
     if (loading) return <div>Načítám uživatele...</div>;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                <button
+                    onClick={handleCreate}
+                    className={styles.buttonSecondary}
+                    style={{ width: '100%', justifyContent: 'center', background: 'var(--color-primary)', color: 'white', border: 'none' }}
+                >
+                    + Vytvořit nového uživatele
+                </button>
+            </div>
             <label className={styles.label}>Existující uživatelé ({users.length})</label>
             {users.map(user => (
                 <div key={user.id} style={{
@@ -254,6 +312,14 @@ const UserManagementList: React.FC<{ currentUserId: string }> = ({ currentUserId
                         <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>({user.role})</span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                            onClick={() => handleEdit(user)}
+                            className={styles.buttonSecondary}
+                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                            title="Upravit uživatele"
+                        >
+                            <User size={14} />
+                        </button>
                         {user.id !== currentUserId && (
                             <button
                                 onClick={() => handleDelete(user.id, user.name || user.email)}

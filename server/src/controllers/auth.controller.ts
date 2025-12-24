@@ -8,6 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export class AuthController {
 
+  // Public Register (can be disabled or protected if needed)
   async register(req: Request, res: Response): Promise<void> {
     try {
       const { email, password, name } = req.body;
@@ -42,6 +43,7 @@ export class AuthController {
     }
   }
 
+  // Public Login
   async login(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
@@ -104,6 +106,64 @@ export class AuthController {
     } catch (error) {
       console.error('Delete user error:', error);
       res.status(500).json({ error: 'Failed to delete user' });
+    }
+  }
+
+  async updateUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { name, email, role, password } = req.body;
+
+      const updateData: any = {};
+      if (name) updateData.name = name;
+      if (email) updateData.email = email;
+      if (role) updateData.role = role;
+      if (password) {
+        updateData.password = await bcrypt.hash(password, 10);
+      }
+
+      const user = await prisma.user.update({
+        where: { id },
+        data: updateData,
+        select: { id: true, name: true, email: true, role: true, createdAt: true }
+      });
+      res.json(user);
+    } catch (error) {
+      console.error('Update user error:', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  }
+
+  async createUser(req: Request, res: Response) {
+    try {
+      const { email, password, name, role } = req.body;
+
+      if (!email || !password) {
+        res.status(400).json({ message: 'Email and password are required' });
+        return;
+      }
+
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        res.status(400).json({ message: 'User already exists' });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          role: role || 'user',
+        },
+        select: { id: true, name: true, email: true, role: true, createdAt: true }
+      });
+
+      res.status(201).json(user);
+    } catch (error) {
+      console.error('Create user error:', error);
+      res.status(500).json({ error: 'Failed to create user' });
     }
   }
 }

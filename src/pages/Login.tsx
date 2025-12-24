@@ -70,8 +70,8 @@ const Login: React.FC = () => {
                     {isLogin ? 'Přihlásit se' : 'Registrovat se'}
                 </button>
             </form>
-            <p style={{ textAlign: 'center', marginTop: '15px', cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setIsLogin(!isLogin)}>
-                {isLogin ? 'Nemáte účet? Registrujte se' : 'Máte již účet? Přihlaste se'}
+            <p style={{ textAlign: 'center', marginTop: '15px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                Systém je pouze pro autorizované uživatele.
             </p>
         </div>
     );

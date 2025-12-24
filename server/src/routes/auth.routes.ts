@@ -10,6 +10,8 @@ router.post('/login', controller.login.bind(controller));
 
 // Admin routes
 router.get('/users', authenticateToken, controller.getAllUsers.bind(controller));
+router.post('/users', authenticateToken, controller.createUser.bind(controller));
+router.put('/users/:id', authenticateToken, controller.updateUser.bind(controller));
 router.delete('/users/:id', authenticateToken, controller.deleteUser.bind(controller));
 
 export const authRoutes = router;
